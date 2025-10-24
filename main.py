@@ -294,9 +294,9 @@ def main():
         return
 
     print(f"\n✓ Found {len(words)} words!")
-    print(f"\nTop {Config.SHOW_TOP_N_WORDS} words:")
-    for word, path in words[:Config.SHOW_TOP_N_WORDS]:
-        print(f"  {word} ({len(word)} letters)")
+    # print(f"\nTop {Config.SHOW_TOP_N_WORDS} words:")
+    # for word, path in words[:Config.SHOW_TOP_N_WORDS]:
+    #     print(f"  {word} ({len(word)} letters)")
 
     # Calculate cell positions
     positions = calculate_cell_positions(region)
