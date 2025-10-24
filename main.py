@@ -42,7 +42,27 @@ class Config:
     FOCUS_CLICK_ENABLED = True       # Click to focus window before playing
 
     # Display settings
-    SHOW_TOP_N_WORDS = 50            # Number of top words to display initially
+    SHOW_TOP_N_WORDS = 0            # Number of top words to display initially
+
+
+# class Config:
+
+#     # Timing settings (in seconds)
+#     MOVE_TO_CELL_DELAY = 0.01        # Delay after moving to a cell
+#     PRESS_DOWN_DELAY = 0.01          # Delay after pressing mouse button
+#     BETWEEN_CELLS_DELAY = 0.01       # Delay between moving to each cell
+#     BEFORE_RELEASE_DELAY = 0.01      # Delay before releasing mouse button
+#     BETWEEN_WORDS_DELAY = 0.01       # Delay between playing different words
+#     SMOOTH_MOVE_DURATION = 0.01      # Duration for smooth movement between cells
+#     STARTUP_DELAY = 3                # Countdown before starting automation
+
+#     # Behavior settings
+#     MIN_WORD_LENGTH = 3              # Minimum word length to find
+#     SORT_BY_LENGTH = True            # Sort words by length (longest first)
+#     FOCUS_CLICK_ENABLED = True       # Click to focus window before playing
+
+#     # Display settings
+#     SHOW_TOP_N_WORDS = 0            # Number of top words to display initially
 
 # =========================================
 
