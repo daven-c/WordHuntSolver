@@ -21,20 +21,16 @@ except LookupError:
 # Initialize mouse controller
 mouse_controller = Controller()
 
+godmode = False
+config = None
+
 # ============= CONFIGURATION =============
 
 
 class Config:
     """Configuration for timing and behavior settings"""
 
-    # Timing settings (in seconds)
-    MOVE_TO_CELL_DELAY = 0.02        # Delay after moving to a cell
-    PRESS_DOWN_DELAY = 0.02          # Delay after pressing mouse button
-    BETWEEN_CELLS_DELAY = 0.01       # Delay between moving to each cell
-    BEFORE_RELEASE_DELAY = 0.02      # Delay before releasing mouse button
-    BETWEEN_WORDS_DELAY = 0.05       # Delay between playing different words
-    SMOOTH_MOVE_DURATION = 0.03      # Duration for smooth movement between cells
-    STARTUP_DELAY = 3                # Countdown before starting automation
+    # Countdown before starting automation
 
     # Behavior settings
     MIN_WORD_LENGTH = 3              # Minimum word length to find
@@ -45,26 +41,28 @@ class Config:
     SHOW_TOP_N_WORDS = 0            # Number of top words to display initially
 
 
-# class Config:
-
-#     # Timing settings (in seconds)
-#     MOVE_TO_CELL_DELAY = 0.01        # Delay after moving to a cell
-#     PRESS_DOWN_DELAY = 0.01          # Delay after pressing mouse button
-#     BETWEEN_CELLS_DELAY = 0.01       # Delay between moving to each cell
-#     BEFORE_RELEASE_DELAY = 0.01      # Delay before releasing mouse button
-#     BETWEEN_WORDS_DELAY = 0.01       # Delay between playing different words
-#     SMOOTH_MOVE_DURATION = 0.01      # Duration for smooth movement between cells
-#     STARTUP_DELAY = 3                # Countdown before starting automation
-
-#     # Behavior settings
-#     MIN_WORD_LENGTH = 3              # Minimum word length to find
-#     SORT_BY_LENGTH = True            # Sort words by length (longest first)
-#     FOCUS_CLICK_ENABLED = True       # Click to focus window before playing
-
-#     # Display settings
-#     SHOW_TOP_N_WORDS = 0            # Number of top words to display initially
-
 # =========================================
+
+class Defaultmode(Config):
+    # Timing settings (in seconds)
+    MOVE_TO_CELL_DELAY = 0.02        # Delay after moving to a cell
+    PRESS_DOWN_DELAY = 0.02          # Delay after pressing mouse button
+    BETWEEN_CELLS_DELAY = 0.01       # Delay between moving to each cell
+    BEFORE_RELEASE_DELAY = 0.02      # Delay before releasing mouse button
+    BETWEEN_WORDS_DELAY = 0.05       # Delay between playing different words
+    SMOOTH_MOVE_DURATION = 0.03      # Duration for smooth movement between cells
+    STARTUP_DELAY = 3                # Countdown before starting automation
+
+
+class Godmode(Config):
+    # Timing settings (in seconds)
+    MOVE_TO_CELL_DELAY = 0.01        # Delay after moving to a cell
+    PRESS_DOWN_DELAY = 0.01          # Delay after pressing mouse button
+    BETWEEN_CELLS_DELAY = 0.01       # Delay between moving to each cell
+    BEFORE_RELEASE_DELAY = 0.01      # Delay before releasing mouse button
+    BETWEEN_WORDS_DELAY = 0.01       # Delay between playing different words
+    SMOOTH_MOVE_DURATION = 0.01      # Duration for smooth movement between cells
+    STARTUP_DELAY = 3
 
 
 class TrieNode:
@@ -147,7 +145,7 @@ def find_words(board, trie):
     rows, cols = len(board), len(board[0])
 
     def dfs(row, col, path, visited, node):
-        if node.is_word and len(node.word) >= Config.MIN_WORD_LENGTH:
+        if node.is_word and len(node.word) >= config.MIN_WORD_LENGTH:
             words_found.append((node.word, list(path)))
 
         # Explore all 8 directions
@@ -185,7 +183,7 @@ def find_words(board, trie):
             unique_words[word] = path
 
     # Sort based on config
-    if Config.SORT_BY_LENGTH:
+    if config.SORT_BY_LENGTH:
         return sorted(unique_words.items(), key=lambda x: len(x[0]), reverse=True)
     else:
         return sorted(unique_words.items(), key=lambda x: x[0])
@@ -214,7 +212,7 @@ def calculate_cell_positions(region):
 def smooth_move(x, y, duration=None):
     """Smoothly move mouse to position"""
     if duration is None:
-        duration = Config.SMOOTH_MOVE_DURATION
+        duration = config.SMOOTH_MOVE_DURATION
 
     start_x, start_y = mouse_controller.position
     steps = int(duration * 60)  # 60 steps per second
@@ -245,24 +243,24 @@ def play_word_pynput(word, path, positions):
     # Move to first position
     x, y = coords[0]
     mouse_controller.position = (x, y)
-    time.sleep(Config.MOVE_TO_CELL_DELAY)
+    time.sleep(config.MOVE_TO_CELL_DELAY)
 
     # Press down
     mouse_controller.press(Button.left)
-    time.sleep(Config.PRESS_DOWN_DELAY)
+    time.sleep(config.PRESS_DOWN_DELAY)
 
     # Move through each position while held
     for i, (x, y) in enumerate(coords[1:], 1):
         # Smooth movement
         smooth_move(x, y)
-        time.sleep(Config.BETWEEN_CELLS_DELAY)
+        time.sleep(config.BETWEEN_CELLS_DELAY)
 
     # Small pause before release
-    time.sleep(Config.BEFORE_RELEASE_DELAY)
+    time.sleep(config.BEFORE_RELEASE_DELAY)
 
     # Release
     mouse_controller.release(Button.left)
-    time.sleep(Config.BETWEEN_WORDS_DELAY)
+    time.sleep(config.BETWEEN_WORDS_DELAY)
 
 
 def main():
@@ -294,8 +292,8 @@ def main():
         return
 
     print(f"\n✓ Found {len(words)} words!")
-    # print(f"\nTop {Config.SHOW_TOP_N_WORDS} words:")
-    # for word, path in words[:Config.SHOW_TOP_N_WORDS]:
+    # print(f"\nTop {config.SHOW_TOP_N_WORDS} words:")
+    # for word, path in words[:config.SHOW_TOP_N_WORDS]:
     #     print(f"  {word} ({len(word)} letters)")
 
     # Calculate cell positions
@@ -307,11 +305,11 @@ def main():
 
     if choice == 'y':
         print(f"\n⚠️  Make sure iPhone Mirroring window is focused!")
-        print(f"Starting in {Config.STARTUP_DELAY} seconds...")
-        time.sleep(Config.STARTUP_DELAY)
+        print(f"Starting in {config.STARTUP_DELAY} seconds...")
+        time.sleep(config.STARTUP_DELAY)
 
         # Focus click if enabled
-        if Config.FOCUS_CLICK_ENABLED:
+        if config.FOCUS_CLICK_ENABLED:
             print("Clicking to focus window...")
             center_x = region[0] + region[2] // 2
             center_y = region[1] + region[3] // 2
@@ -335,6 +333,12 @@ def main():
 
 
 if __name__ == "__main__":
+    config = Defaultmode()
+    *args, = sys.argv[1:]
+    if '-god' in args:
+        godmode = True
+        print("⚠️  GODMODE ENABLED ⚠️")
+        config = Godmode()
     try:
         main()
     except KeyboardInterrupt:
