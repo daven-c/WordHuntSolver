@@ -1,9 +1,8 @@
-
-
 import time
 import sys
 from pynput.mouse import Controller, Button
-from pynput import mouse
+from pynput import mouse, keyboard
+import threading
 
 import nltk
 try:
@@ -20,6 +19,12 @@ except LookupError:
 
 # Initialize mouse controller
 mouse_controller = Controller()
+
+# Failsafe globals
+failsafe_triggered = False
+screen_width = None
+screen_height = None
+CORNER_THRESHOLD = 10  # pixels from any screen corner to trigger failsafe
 
 godmode = False
 config = None
@@ -209,6 +214,58 @@ def calculate_cell_positions(region):
     return positions
 
 
+def init_failsafe():
+    """Initialize keyboard listener and determine screen size for corner failsafe"""
+    global screen_width, screen_height, failsafe_triggered
+
+    try:
+        # determine screen size using tkinter (standard lib)
+        import tkinter as tk
+        root = tk.Tk()
+        root.withdraw()
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        root.destroy()
+    except Exception:
+        # fallback to large values so corner check will be less likely false-positive
+        screen_width = 99999
+        screen_height = 99999
+
+    def on_press(key):
+        global failsafe_triggered
+        try:
+            if key == keyboard.Key.esc:
+                failsafe_triggered = True
+                print("\n❗ Failsafe: Esc pressed. Stopping...")
+        except Exception:
+            pass
+
+    listener = keyboard.Listener(on_press=on_press)
+    listener.daemon = True
+    listener.start()
+
+
+def check_failsafe():
+    """Raise KeyboardInterrupt if failsafe is triggered (Esc or corner)"""
+    global failsafe_triggered
+    if failsafe_triggered:
+        raise KeyboardInterrupt()
+    try:
+        x, y = mouse_controller.position
+        if (x <= CORNER_THRESHOLD and y <= CORNER_THRESHOLD) or \
+           (x <= CORNER_THRESHOLD and y >= screen_height - CORNER_THRESHOLD) or \
+           (x >= screen_width - CORNER_THRESHOLD and y <= CORNER_THRESHOLD) or \
+           (x >= screen_width - CORNER_THRESHOLD and y >= screen_height - CORNER_THRESHOLD):
+            failsafe_triggered = True
+            print("\n❗ Failsafe: Mouse moved to corner. Stopping...")
+            raise KeyboardInterrupt()
+    except KeyboardInterrupt:
+        raise
+    except Exception:
+        # ignore any transient errors reading mouse position
+        pass
+
+
 def smooth_move(x, y, duration=None):
     """Smoothly move mouse to position"""
     if duration is None:
@@ -221,6 +278,7 @@ def smooth_move(x, y, duration=None):
         steps = 1
 
     for i in range(steps + 1):
+        check_failsafe()
         t = i / steps
         # Ease in-out
         t = t * t * (3 - 2 * t)
@@ -235,6 +293,7 @@ def play_word_pynput(word, path, positions):
     if not path:
         return
 
+    check_failsafe()
     print(f"Playing: {word} ({len(path)} letters)")
 
     # Get all coordinates
@@ -245,18 +304,23 @@ def play_word_pynput(word, path, positions):
     mouse_controller.position = (x, y)
     time.sleep(config.MOVE_TO_CELL_DELAY)
 
+    check_failsafe()
+
     # Press down
     mouse_controller.press(Button.left)
     time.sleep(config.PRESS_DOWN_DELAY)
 
     # Move through each position while held
     for i, (x, y) in enumerate(coords[1:], 1):
+        check_failsafe()
         # Smooth movement
         smooth_move(x, y)
         time.sleep(config.BETWEEN_CELLS_DELAY)
 
     # Small pause before release
     time.sleep(config.BEFORE_RELEASE_DELAY)
+
+    check_failsafe()
 
     # Release
     mouse_controller.release(Button.left)
@@ -275,6 +339,9 @@ def main():
     trie = build_trie()
     print("✓ Trie built successfully")
 
+    # Initialize failsafe listener & screen info
+    init_failsafe()
+
     # Capture board
     img, region = capture_board_region()
 
@@ -292,9 +359,6 @@ def main():
         return
 
     print(f"\n✓ Found {len(words)} words!")
-    # print(f"\nTop {config.SHOW_TOP_N_WORDS} words:")
-    # for word, path in words[:config.SHOW_TOP_N_WORDS]:
-    #     print(f"  {word} ({len(word)} letters)")
 
     # Calculate cell positions
     positions = calculate_cell_positions(region)
@@ -319,15 +383,15 @@ def main():
             time.sleep(0.3)
 
         played = 0
-        for word, path in words:
-            try:
+        try:
+            for word, path in words:
+                check_failsafe()
                 play_word_pynput(word, path, positions)
                 played += 1
-            except KeyboardInterrupt:
-                print("\n\nStopped by user")
-                break
-
-        print(f"\n✅ Finished! Played {played} words.")
+        except KeyboardInterrupt:
+            print("\n\nStopped by user / failsafe")
+        finally:
+            print(f"\n✅ Finished! Played {played} words.")
     else:
         print("\nWords listed above. Happy hunting!")
 
