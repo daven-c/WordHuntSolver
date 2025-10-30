@@ -26,7 +26,6 @@ screen_width = None
 screen_height = None
 CORNER_THRESHOLD = 10  # pixels from any screen corner to trigger failsafe
 
-godmode = False
 config = None
 
 # ============= CONFIGURATION =============
@@ -67,6 +66,17 @@ class Godmode(Config):
     BEFORE_RELEASE_DELAY = 0.01      # Delay before releasing mouse button
     BETWEEN_WORDS_DELAY = 0.01       # Delay between playing different words
     SMOOTH_MOVE_DURATION = 0.01      # Duration for smooth movement between cells
+    STARTUP_DELAY = 3
+
+
+class Slowmode(Config):
+    # Timing settings (in seconds)
+    MOVE_TO_CELL_DELAY = 0.03        # Delay after moving to a cell
+    PRESS_DOWN_DELAY = 0.02          # Delay after pressing mouse button
+    BETWEEN_CELLS_DELAY = 0.01       # Delay between moving to each cell
+    BEFORE_RELEASE_DELAY = 0.02      # Delay before releasing mouse button
+    BETWEEN_WORDS_DELAY = 0.1       # Delay between playing different words
+    SMOOTH_MOVE_DURATION = 0.05      # Duration for smooth movement between cells
     STARTUP_DELAY = 3
 
 
@@ -399,10 +409,18 @@ def main():
 if __name__ == "__main__":
     config = Defaultmode()
     *args, = sys.argv[1:]
-    if '-god' in args:
-        godmode = True
+    if '-slow' in args:
+        config = Slowmode()
+        print("⚠️  Slowmode enabled")
+
+    elif '-god' in args:
         print("⚠️  GODMODE ENABLED ⚠️")
         config = Godmode()
+
+    if '-ran' in args:
+        config.SORT_BY_LENGTH = False
+        print("⚠️  Random mode enabled: Words will not be sorted by length.")
+
     try:
         main()
     except KeyboardInterrupt:
